@@ -1,0 +1,19 @@
+output "bucket_name" {
+  description = "Name of the Cloud Storage bucket used for environment artifacts."
+  value       = google_storage_bucket.artifacts.name
+}
+
+output "service_account_email" {
+  description = "Email address of the TerraPreview service account."
+  value       = google_service_account.preview_app.email
+}
+
+output "artifact_registry_repository" {
+  description = "Artifact Registry repository name for Docker images."
+  value       = google_artifact_registry_repository.app_images.repository_id
+}
+
+output "cloud_run_service_url" {
+  description = "Public URL of the Cloud Run service."
+  value       = google_cloud_run_v2_service.preview_app.uri
+}

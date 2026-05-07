@@ -1,0 +1,5 @@
+project_id      = "your-gcp-project-id"
+region          = "us-central1"
+environment     = "dev"
+app_name        = "terrapreview"
+container_image = "us-docker.pkg.dev/cloudrun/container/hello"
