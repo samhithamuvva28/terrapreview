@@ -24,6 +24,7 @@ From the repository root:
 ```
 
 The helper scripts create one Terraform workspace per preview ID so multiple previews can coexist without overwriting each other.
+They also configure the Terraform backend to use the shared GCS artifact bucket, so preview state survives across local runs and GitHub Actions runs.
 
 ### Direct Terraform usage
 

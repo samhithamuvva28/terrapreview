@@ -30,7 +30,10 @@ REGION="$(sed -n 's/^region[[:space:]]*=[[:space:]]*"\(.*\)"$/\1/p' "${TFVARS_FI
 ENVIRONMENT="$(sed -n 's/^environment[[:space:]]*=[[:space:]]*"\(.*\)"$/\1/p' "${TFVARS_FILE}" | head -n 1)"
 APP_NAME="$(sed -n 's/^app_name[[:space:]]*=[[:space:]]*"\(.*\)"$/\1/p' "${TFVARS_FILE}" | head -n 1)"
 
-if [[ -f "${BASE_DIR}/terraform.tfstate" ]]; then
+if [[ -n "${TERRAPREVIEW_SERVICE_ACCOUNT_EMAIL:-}" && -n "${TERRAPREVIEW_ARTIFACT_BUCKET_NAME:-}" ]]; then
+  SERVICE_ACCOUNT_EMAIL="${TERRAPREVIEW_SERVICE_ACCOUNT_EMAIL}"
+  ARTIFACT_BUCKET_NAME="${TERRAPREVIEW_ARTIFACT_BUCKET_NAME}"
+elif [[ -f "${BASE_DIR}/terraform.tfstate" ]]; then
   SERVICE_ACCOUNT_EMAIL="$(terraform -chdir="${BASE_DIR}" output -raw service_account_email)"
   ARTIFACT_BUCKET_NAME="$(terraform -chdir="${BASE_DIR}" output -raw bucket_name)"
 else
@@ -61,7 +64,10 @@ if [[ -z "${SERVICE_ACCOUNT_EMAIL}" || -z "${ARTIFACT_BUCKET_NAME}" ]]; then
   exit 1
 fi
 
-terraform -chdir="${PREVIEW_DIR}" init
+terraform -chdir="${PREVIEW_DIR}" init \
+  -reconfigure \
+  -backend-config="bucket=${ARTIFACT_BUCKET_NAME}" \
+  -backend-config="prefix=terraform/preview"
 
 if ! terraform -chdir="${PREVIEW_DIR}" workspace list | tr -d '* ' | grep -Fxq "${PREVIEW_ID}"; then
   echo "No preview workspace named ${PREVIEW_ID} exists."

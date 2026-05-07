@@ -1,0 +1,96 @@
+name: Preview Destroy
+
+on:
+  pull_request:
+    types:
+      - closed
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  REGION: ${{ vars.GCP_REGION }}
+  TERRAPREVIEW_ENVIRONMENT: ${{ vars.TERRAPREVIEW_ENVIRONMENT }}
+  TERRAPREVIEW_APP_NAME: ${{ vars.TERRAPREVIEW_APP_NAME }}
+  TERRAPREVIEW_SERVICE_ACCOUNT_EMAIL: ${{ vars.TERRAPREVIEW_SERVICE_ACCOUNT_EMAIL }}
+  TERRAPREVIEW_ARTIFACT_BUCKET_NAME: ${{ vars.TERRAPREVIEW_ARTIFACT_BUCKET_NAME }}
+
+jobs:
+  destroy:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Write shared Terraform variables for automation
+        run: |
+          cat > infra/terraform/terraform.tfvars <<EOF
+          project_id      = "${PROJECT_ID}"
+          region          = "${REGION}"
+          environment     = "${TERRAPREVIEW_ENVIRONMENT}"
+          app_name        = "${TERRAPREVIEW_APP_NAME}"
+          container_image = "us-docker.pkg.dev/cloudrun/container/hello"
+          EOF
+
+      - name: Destroy preview environment
+        env:
+          PREVIEW_ID: pr-${{ github.event.pull_request.number }}
+        run: ./scripts/preview-down.sh "${PREVIEW_ID}"
+
+      - name: Comment preview teardown on pull request
+        uses: actions/github-script@v7
+        env:
+          PREVIEW_ID: pr-${{ github.event.pull_request.number }}
+        with:
+          script: |
+            const marker = '<!-- terrapreview-preview-comment -->';
+            const body = `${marker}
+            TerraPreview preview environment has been destroyed.
+
+            - Preview ID: \`${process.env.PREVIEW_ID}\``;
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            });
+
+            const existing = comments.find((comment) =>
+              comment.user?.type === 'Bot' && comment.body?.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              });
+            }
