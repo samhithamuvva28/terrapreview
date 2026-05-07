@@ -285,3 +285,5 @@ cd /Users/samhitha/Documents/Projects/terrapreview/infra/terraform
 cp terraform.tfvars.example terraform.tfvars
 terraform init
 ```
+
+Phase 3 GitHub Actions test.
