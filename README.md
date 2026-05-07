@@ -2,7 +2,9 @@
 
 TerraPreview is a personal SWE/infra project for learning how to build ephemeral preview environments on Google Cloud. The long-term goal is to create isolated environments for GitHub pull requests and automatically clean them up after merge or close.
 
-Phase 1 focuses only on the Terraform foundation. It gives you a simple, deployable GCP baseline that you can safely create, update, and destroy with Terraform.
+Phase 1 focuses on the Terraform foundation. It gives you a simple, deployable GCP baseline that you can safely create, update, and destroy with Terraform.
+
+Phase 2 adds a manual preview environment workflow on top of that foundation. It lets you create one isolated Cloud Run preview service per `preview_id` before adding full GitHub pull request automation later.
 
 ## What Phase 1 Creates
 
@@ -13,12 +15,27 @@ Phase 1 focuses only on the Terraform foundation. It gives you a simple, deploya
 - A Cloud Run service placeholder
 - Terraform outputs for the main resource values you will need later
 
+## What Phase 2 Adds
+
+- A reusable Terraform module for per-preview Cloud Run services
+- A dedicated preview Terraform environment at `infra/terraform/environments/preview`
+- A manual `preview-up` workflow for creating a named preview service
+- A manual `preview-down` workflow for destroying a named preview service
+- Preview-specific outputs such as the preview URL, preview service name, and artifact prefix
+
 ## Project Structure
 
 ```text
 terrapreview/
+├── scripts/
+│   ├── preview-up.sh
+│   └── preview-down.sh
 ├── infra/
 │   └── terraform/
+│       ├── environments/
+│       │   └── preview/
+│       ├── modules/
+│       │   └── preview_service/
 │       ├── main.tf
 │       ├── variables.tf
 │       ├── outputs.tf
@@ -30,6 +47,7 @@ terrapreview/
 │   ├── requirements.txt
 │   └── Dockerfile
 ├── .gitignore
+├── .dockerignore
 └── README.md
 ```
 
@@ -130,6 +148,37 @@ cd ../infra/terraform
 terraform apply
 ```
 
+## Phase 2 Manual Preview Workflow
+
+Phase 2 keeps the shared Phase 1 resources in place and adds separate preview services on demand.
+
+Create a preview environment:
+
+```bash
+./scripts/preview-up.sh pr-123 us-central1-docker.pkg.dev/my-project/terrapreview-dev-repo/terrapreview-app:phase2
+```
+
+That command:
+
+- reads the shared Phase 1 Terraform outputs
+- creates a dedicated Cloud Run service for `pr-123`
+- stores the preview in its own Terraform workspace named `pr-123`
+- prints the preview service URL
+
+Destroy a preview environment:
+
+```bash
+./scripts/preview-down.sh pr-123
+```
+
+Recommended naming examples for `preview_id`:
+
+- `pr-123`
+- `feature-login`
+- `bugfix-auth`
+
+Keep `preview_id` short and use only lowercase letters, numbers, and dashes.
+
 ## Cost Warning
 
 Cloud Run, Artifact Registry, and Cloud Storage can incur charges if left running. Use `terraform destroy` when you are done testing Phase 1.
@@ -140,19 +189,24 @@ Cloud Run, Artifact Registry, and Cloud Storage can incur charges if left runnin
 - `app/requirements.txt` lists the Python dependencies for the app
 - `app/Dockerfile` builds the app into a container image
 - `infra/terraform/versions.tf` pins Terraform and provider versions
+- `infra/terraform/modules/preview_service/` contains the reusable module for one preview Cloud Run service
+- `infra/terraform/environments/preview/` contains the Terraform entrypoint for manual preview environments
 - `infra/terraform/variables.tf` defines the input variables
 - `infra/terraform/main.tf` creates the GCP infrastructure
 - `infra/terraform/outputs.tf` prints useful values after apply
 - `infra/terraform/terraform.tfvars.example` shows the variables you should fill in locally
 - `infra/terraform/README.md` explains the Terraform module in more detail
+- `scripts/preview-up.sh` creates or updates a named preview environment
+- `scripts/preview-down.sh` destroys a named preview environment
 - `.gitignore` keeps local Terraform state, variable files, and Python cache files out of Git
+- `.dockerignore` keeps local cache files out of Docker build context
 
 ## First Command To Run
 
 Start here:
 
 ```bash
-cd /Users/samhitha/Documents/ReferU.AI/LRA/LegalResarchAgent/terrapreview/infra/terraform
+cd /Users/samhitha/Documents/Projects/terrapreview/infra/terraform
 cp terraform.tfvars.example terraform.tfvars
 terraform init
 ```

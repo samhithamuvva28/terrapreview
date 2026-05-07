@@ -1,6 +1,9 @@
-# Terraform Module
+# Shared Terraform Foundation
 
-This directory contains the Terraform configuration for TerraPreview Phase 1 on Google Cloud Platform.
+This directory contains the shared Terraform foundation for TerraPreview on Google Cloud Platform.
+
+Phase 1 creates the reusable base resources.
+Phase 2 preview environments build on top of this foundation instead of recreating it.
 
 ## Resources Created
 
@@ -9,7 +12,7 @@ This directory contains the Terraform configuration for TerraPreview Phase 1 on 
 - Service account for the preview app
 - Basic IAM roles for storage access and logging
 - Artifact Registry Docker repository
-- Cloud Run placeholder service
+- Shared Cloud Run service
 - Outputs for the main resource values
 
 ## Files
@@ -19,6 +22,23 @@ This directory contains the Terraform configuration for TerraPreview Phase 1 on 
 - `main.tf` creates the GCP resources
 - `outputs.tf` prints helpful values after deployment
 - `terraform.tfvars.example` shows sample variable values you can copy into a real local `terraform.tfvars`
+
+## Phase 2 Preview Layer
+
+Manual preview environments live under:
+
+```text
+environments/preview/
+```
+
+That directory reuses the shared outputs from this foundation, especially:
+
+- `project_id`
+- `region`
+- `environment`
+- `app_name`
+- `service_account_email`
+- `bucket_name`
 
 ## Usage
 
@@ -50,3 +70,4 @@ terraform destroy
 - Bucket names must be globally unique, so this module adds a small random suffix to the bucket name.
 - The default Cloud Run image is a public sample container so you can test infrastructure before building your own app image.
 - When you are ready to use your own container, update `container_image` and run `terraform apply` again.
+- The helper scripts in `scripts/preview-up.sh` and `scripts/preview-down.sh` use the outputs from this directory to create and destroy preview-specific services in Phase 2.

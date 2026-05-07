@@ -3,6 +3,26 @@ output "bucket_name" {
   value       = google_storage_bucket.artifacts.name
 }
 
+output "project_id" {
+  description = "Google Cloud project ID used by the shared TerraPreview foundation."
+  value       = var.project_id
+}
+
+output "region" {
+  description = "Default region used by the shared TerraPreview foundation."
+  value       = var.region
+}
+
+output "environment" {
+  description = "Environment name used by the shared TerraPreview foundation."
+  value       = var.environment
+}
+
+output "app_name" {
+  description = "Application name used by the shared TerraPreview foundation."
+  value       = var.app_name
+}
+
 output "service_account_email" {
   description = "Email address of the TerraPreview service account."
   value       = google_service_account.preview_app.email

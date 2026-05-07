@@ -1,0 +1,8 @@
+project_id            = "your-gcp-project-id"
+region                = "us-central1"
+environment           = "dev"
+app_name              = "terrapreview"
+preview_id            = "pr-123"
+container_image       = "us-central1-docker.pkg.dev/your-gcp-project-id/terrapreview-dev-repo/terrapreview-app:phase2"
+service_account_email = "terrapreviewdev@your-gcp-project-id.iam.gserviceaccount.com"
+artifact_bucket_name  = "terrapreview-dev-your-gcp-project-id-artifacts-abcd"
