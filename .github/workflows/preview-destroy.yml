@@ -7,14 +7,17 @@ on:
 
 permissions:
   contents: read
+  id-token: write
   pull-requests: write
 
 env:
+  GCP_DEPLOYER_SERVICE_ACCOUNT_EMAIL: ${{ vars.GCP_DEPLOYER_SERVICE_ACCOUNT_EMAIL }}
   PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
   REGION: ${{ vars.GCP_REGION }}
+  GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
   TERRAPREVIEW_ENVIRONMENT: ${{ vars.TERRAPREVIEW_ENVIRONMENT }}
   TERRAPREVIEW_APP_NAME: ${{ vars.TERRAPREVIEW_APP_NAME }}
-  TERRAPREVIEW_SERVICE_ACCOUNT_EMAIL: ${{ vars.TERRAPREVIEW_SERVICE_ACCOUNT_EMAIL }}
+  TERRAPREVIEW_SERVICE_ACCOUNT_EMAIL: ${{ vars.TERRAPREVIEW_RUNTIME_SERVICE_ACCOUNT_EMAIL }}
   TERRAPREVIEW_ARTIFACT_BUCKET_NAME: ${{ vars.TERRAPREVIEW_ARTIFACT_BUCKET_NAME }}
 
 jobs:
@@ -29,7 +32,9 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
         with:
-          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+          project_id: ${{ env.PROJECT_ID }}
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_DEPLOYER_SERVICE_ACCOUNT_EMAIL }}
 
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v3
