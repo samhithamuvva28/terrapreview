@@ -297,3 +297,5 @@ terraform init
 Phase 3 GitHub Actions test.
 
 Retry with correct workload identity provider.
+
+Retry after granting token creator.
