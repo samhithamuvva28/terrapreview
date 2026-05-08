@@ -212,23 +212,25 @@ When a pull request is closed or merged:
 
 Add these repository variables in GitHub:
 
+- `GCP_DEPLOYER_SERVICE_ACCOUNT_EMAIL`
 - `GCP_PROJECT_ID`
 - `GCP_REGION`
 - `GCP_WORKLOAD_IDENTITY_PROVIDER`
 - `TERRAPREVIEW_ENVIRONMENT`
 - `TERRAPREVIEW_APP_NAME`
-- `TERRAPREVIEW_SERVICE_ACCOUNT_EMAIL`
+- `TERRAPREVIEW_RUNTIME_SERVICE_ACCOUNT_EMAIL`
 - `TERRAPREVIEW_ARTIFACT_BUCKET_NAME`
 
 Recommended values for this project:
 
 ```text
+GCP_DEPLOYER_SERVICE_ACCOUNT_EMAIL=terrapreview-github-deployer@terraformproject-495521.iam.gserviceaccount.com
 GCP_PROJECT_ID=terraformproject-495521
 GCP_REGION=us-central1
 GCP_WORKLOAD_IDENTITY_PROVIDER=projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github/providers/terrapreview
 TERRAPREVIEW_ENVIRONMENT=dev
 TERRAPREVIEW_APP_NAME=terrapreview
-TERRAPREVIEW_SERVICE_ACCOUNT_EMAIL=terrapreviewdev@terraformproject-495521.iam.gserviceaccount.com
+TERRAPREVIEW_RUNTIME_SERVICE_ACCOUNT_EMAIL=terrapreviewdev@terraformproject-495521.iam.gserviceaccount.com
 TERRAPREVIEW_ARTIFACT_BUCKET_NAME=terrapreview-dev-terraformproject-495521-artifacts-2fec
 ```
 
@@ -246,7 +248,7 @@ The service account used by the workflow should have permission to:
 The GitHub workflows use `google-github-actions/auth@v3` with:
 
 - `workload_identity_provider`
-- `service_account`
+- `service_account` set to the GitHub deployer service account
 - `id-token: write`
 
 This is safer than storing a service account key in GitHub.
