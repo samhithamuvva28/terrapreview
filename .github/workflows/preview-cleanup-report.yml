@@ -1,0 +1,91 @@
+name: Preview Cleanup Report
+
+on:
+  schedule:
+    - cron: "17 14 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: read
+
+env:
+  GCP_DEPLOYER_SERVICE_ACCOUNT_EMAIL: ${{ vars.GCP_DEPLOYER_SERVICE_ACCOUNT_EMAIL }}
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  REGION: ${{ vars.GCP_REGION }}
+  GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+  TERRAPREVIEW_ENVIRONMENT: ${{ vars.TERRAPREVIEW_ENVIRONMENT }}
+  TERRAPREVIEW_APP_NAME: ${{ vars.TERRAPREVIEW_APP_NAME }}
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_DEPLOYER_SERVICE_ACCOUNT_EMAIL }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: List preview services
+        run: |
+          gcloud run services list \
+            --project="${PROJECT_ID}" \
+            --region="${REGION}" \
+            --format=json > preview-services.json
+
+      - name: Write orphan preview report
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const services = JSON.parse(fs.readFileSync("preview-services.json", "utf8"));
+            const previewServices = services.filter((service) =>
+              service.metadata?.name?.startsWith(`${process.env.TERRAPREVIEW_APP_NAME}-${process.env.TERRAPREVIEW_ENVIRONMENT}-pr-`)
+            );
+
+            const openPulls = await github.paginate(github.rest.pulls.list, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              per_page: 100,
+            });
+
+            const openPreviewIds = new Set(openPulls.map((pr) => `pr-${pr.number}`));
+            const orphaned = previewServices.filter((service) => {
+              const name = service.metadata?.name || "";
+              const previewId = name.replace(`${process.env.TERRAPREVIEW_APP_NAME}-${process.env.TERRAPREVIEW_ENVIRONMENT}-`, "");
+              return !openPreviewIds.has(previewId);
+            });
+
+            const summary = [];
+            summary.push("## TerraPreview Cleanup Report");
+            summary.push("");
+            summary.push(`- Region: ${process.env.REGION}`);
+            summary.push(`- Open pull requests: ${openPulls.length}`);
+            summary.push(`- Preview services found: ${previewServices.length}`);
+            summary.push(`- Orphan preview services: ${orphaned.length}`);
+            summary.push("");
+
+            if (orphaned.length > 0) {
+              summary.push("### Orphan Preview Services");
+              for (const service of orphaned) {
+                summary.push(`- ${service.metadata?.name}`);
+              }
+            } else {
+              summary.push("No orphan preview services were found.");
+            }
+
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary.join("\n")}\n`);
+        env:
+          REGION: ${{ env.REGION }}
+          TERRAPREVIEW_APP_NAME: ${{ env.TERRAPREVIEW_APP_NAME }}
+          TERRAPREVIEW_ENVIRONMENT: ${{ env.TERRAPREVIEW_ENVIRONMENT }}

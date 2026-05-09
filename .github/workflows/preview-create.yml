@@ -96,6 +96,9 @@ jobs:
 
       - name: Create or update preview environment
         env:
+          TERRAPREVIEW_GIT_BRANCH: ${{ github.head_ref }}
+          TERRAPREVIEW_GIT_SHA: ${{ github.event.pull_request.head.sha }}
+          TERRAPREVIEW_PR_NUMBER: ${{ github.event.pull_request.number }}
           PREVIEW_ID: pr-${{ github.event.pull_request.number }}
         run: ./scripts/preview-up.sh "${PREVIEW_ID}" "${{ steps.image.outputs.image_uri }}"
 
@@ -125,15 +128,18 @@ jobs:
           PREVIEW_URL: ${{ steps.preview.outputs.preview_url }}
           PREVIEW_ID: pr-${{ github.event.pull_request.number }}
           IMAGE_URI: ${{ steps.image.outputs.image_uri }}
+          UPDATED_AT: ${{ github.event.pull_request.updated_at }}
         with:
           script: |
             const marker = '<!-- terrapreview-preview-comment -->';
             const body = `${marker}
-            TerraPreview preview environment is ready.
+            ## TerraPreview Preview
 
-            - Preview ID: \`${process.env.PREVIEW_ID}\`
-            - Preview URL: ${process.env.PREVIEW_URL}
-            - Image: \`${process.env.IMAGE_URI}\``;
+            Status: Ready
+            Preview ID: \`${process.env.PREVIEW_ID}\`
+            Preview URL: ${process.env.PREVIEW_URL}
+            Image: \`${process.env.IMAGE_URI}\`
+            Updated: \`${process.env.UPDATED_AT}\``;
 
             const { owner, repo } = context.repo;
             const issue_number = context.issue.number;
@@ -163,3 +169,20 @@ jobs:
                 body,
               });
             }
+
+      - name: Write workflow summary
+        env:
+          PREVIEW_ID: pr-${{ github.event.pull_request.number }}
+          PREVIEW_URL: ${{ steps.preview.outputs.preview_url }}
+          IMAGE_URI: ${{ steps.image.outputs.image_uri }}
+        run: |
+          {
+            echo "## TerraPreview Preview"
+            echo
+            echo "- Status: Ready"
+            echo "- Preview ID: ${PREVIEW_ID}"
+            echo "- Preview URL: ${PREVIEW_URL}"
+            echo "- Image: \`${IMAGE_URI}\`"
+            echo "- Branch: ${GITHUB_HEAD_REF}"
+            echo "- Commit: ${GITHUB_SHA}"
+          } >> "${GITHUB_STEP_SUMMARY}"

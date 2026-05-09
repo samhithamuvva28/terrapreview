@@ -78,13 +78,16 @@ jobs:
         uses: actions/github-script@v7
         env:
           PREVIEW_ID: pr-${{ github.event.pull_request.number }}
+          CLOSED_AT: ${{ github.event.pull_request.closed_at }}
         with:
           script: |
             const marker = '<!-- terrapreview-preview-comment -->';
             const body = `${marker}
-            TerraPreview preview environment has been destroyed.
+            ## TerraPreview Preview
 
-            - Preview ID: \`${process.env.PREVIEW_ID}\``;
+            Status: Destroyed
+            Preview ID: \`${process.env.PREVIEW_ID}\`
+            Destroyed At: \`${process.env.CLOSED_AT}\``;
 
             const { owner, repo } = context.repo;
             const issue_number = context.issue.number;
@@ -114,3 +117,15 @@ jobs:
                 body,
               });
             }
+
+      - name: Write workflow summary
+        env:
+          PREVIEW_ID: pr-${{ github.event.pull_request.number }}
+        run: |
+          {
+            echo "## TerraPreview Preview"
+            echo
+            echo "- Status: Destroyed"
+            echo "- Preview ID: ${PREVIEW_ID}"
+            echo "- Trigger: pull_request.closed"
+          } >> "${GITHUB_STEP_SUMMARY}"

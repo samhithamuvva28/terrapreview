@@ -14,4 +14,7 @@ module "preview_service" {
   container_image       = var.container_image
   service_account_email = var.service_account_email
   artifact_bucket_name  = var.artifact_bucket_name
+  git_branch            = var.git_branch
+  git_sha               = var.git_sha
+  pr_number             = var.pr_number
 }
