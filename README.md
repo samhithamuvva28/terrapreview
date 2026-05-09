@@ -262,6 +262,15 @@ These workflows intentionally run only for pull requests created from branches i
 
 Preview state is stored remotely in the shared GCS artifact bucket, so the create and destroy workflows can manage the same preview environment across separate GitHub Actions runs.
 
+### Phase 3 hardening
+
+The workflows include a few reliability protections:
+
+- PR preview create runs use GitHub Actions concurrency so older in-progress deploys are canceled when newer commits arrive
+- destroy runs do not cancel each other, which helps teardown finish cleanly
+- the helper scripts trim carriage returns and extra whitespace from important values such as service account emails and bucket names
+- the destroy script performs a direct `gcloud run services delete` fallback if Terraform teardown completes but the preview service still exists
+
 ## Cost Warning
 
 Cloud Run, Artifact Registry, and Cloud Storage can incur charges if left running. Use `terraform destroy` when you are done testing Phase 1.

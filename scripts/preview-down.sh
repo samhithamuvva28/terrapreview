@@ -9,6 +9,12 @@ fi
 
 PREVIEW_ID="$1"
 
+trim() {
+  printf '%s' "$1" | tr -d '\r' | xargs
+}
+
+PREVIEW_ID="$(trim "${PREVIEW_ID}")"
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BASE_DIR="${ROOT_DIR}/infra/terraform"
 PREVIEW_DIR="${BASE_DIR}/environments/preview"
@@ -30,9 +36,14 @@ REGION="$(sed -n 's/^region[[:space:]]*=[[:space:]]*"\(.*\)"$/\1/p' "${TFVARS_FI
 ENVIRONMENT="$(sed -n 's/^environment[[:space:]]*=[[:space:]]*"\(.*\)"$/\1/p' "${TFVARS_FILE}" | head -n 1)"
 APP_NAME="$(sed -n 's/^app_name[[:space:]]*=[[:space:]]*"\(.*\)"$/\1/p' "${TFVARS_FILE}" | head -n 1)"
 
+PROJECT_ID="$(trim "${PROJECT_ID}")"
+REGION="$(trim "${REGION}")"
+ENVIRONMENT="$(trim "${ENVIRONMENT}")"
+APP_NAME="$(trim "${APP_NAME}")"
+
 if [[ -n "${TERRAPREVIEW_SERVICE_ACCOUNT_EMAIL:-}" && -n "${TERRAPREVIEW_ARTIFACT_BUCKET_NAME:-}" ]]; then
-  SERVICE_ACCOUNT_EMAIL="${TERRAPREVIEW_SERVICE_ACCOUNT_EMAIL}"
-  ARTIFACT_BUCKET_NAME="${TERRAPREVIEW_ARTIFACT_BUCKET_NAME}"
+  SERVICE_ACCOUNT_EMAIL="$(trim "${TERRAPREVIEW_SERVICE_ACCOUNT_EMAIL}")"
+  ARTIFACT_BUCKET_NAME="$(trim "${TERRAPREVIEW_ARTIFACT_BUCKET_NAME}")"
 elif [[ -f "${BASE_DIR}/terraform.tfstate" ]]; then
   SERVICE_ACCOUNT_EMAIL="$(terraform -chdir="${BASE_DIR}" output -raw service_account_email)"
   ARTIFACT_BUCKET_NAME="$(terraform -chdir="${BASE_DIR}" output -raw bucket_name)"
@@ -53,6 +64,9 @@ else
     --format="value(name)" | head -n 1)"
 fi
 
+SERVICE_ACCOUNT_EMAIL="$(trim "${SERVICE_ACCOUNT_EMAIL}")"
+ARTIFACT_BUCKET_NAME="$(trim "${ARTIFACT_BUCKET_NAME}")"
+
 if [[ -z "${PROJECT_ID}" || -z "${REGION}" || -z "${ENVIRONMENT}" || -z "${APP_NAME}" ]]; then
   echo "Could not read shared values from ${TFVARS_FILE}."
   exit 1
@@ -68,6 +82,9 @@ terraform -chdir="${PREVIEW_DIR}" init \
   -reconfigure \
   -backend-config="bucket=${ARTIFACT_BUCKET_NAME}" \
   -backend-config="prefix=terraform/preview"
+
+echo "Destroying preview workspace: ${PREVIEW_ID}"
+echo "Using artifact bucket: ${ARTIFACT_BUCKET_NAME}"
 
 if ! terraform -chdir="${PREVIEW_DIR}" workspace list | tr -d '* ' | grep -Fxq "${PREVIEW_ID}"; then
   echo "No preview workspace named ${PREVIEW_ID} exists."
@@ -88,6 +105,19 @@ terraform -chdir="${PREVIEW_DIR}" destroy \
 
 terraform -chdir="${PREVIEW_DIR}" workspace select default
 terraform -chdir="${PREVIEW_DIR}" workspace delete "${PREVIEW_ID}"
+
+if command -v gcloud >/dev/null 2>&1; then
+  SERVICE_NAME="${APP_NAME}-${ENVIRONMENT}-${PREVIEW_ID}"
+  if gcloud run services describe "${SERVICE_NAME}" \
+    --region="${REGION}" \
+    --project="${PROJECT_ID}" >/dev/null 2>&1; then
+    echo "Preview service ${SERVICE_NAME} still exists after Terraform destroy. Deleting directly with gcloud."
+    gcloud run services delete "${SERVICE_NAME}" \
+      --region="${REGION}" \
+      --project="${PROJECT_ID}" \
+      --quiet
+  fi
+fi
 
 echo
 echo "Preview environment ${PREVIEW_ID} has been destroyed."

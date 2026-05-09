@@ -7,6 +7,10 @@ on:
       - reopened
       - synchronize
 
+concurrency:
+  group: terrapreview-preview-pr-${{ github.event.pull_request.number }}-apply
+  cancel-in-progress: true
+
 permissions:
   contents: read
   id-token: write
@@ -51,6 +55,17 @@ jobs:
 
       - name: Write shared Terraform variables for automation
         run: |
+          sanitize() {
+            printf '%s' "$1" | tr -d '\r' | xargs
+          }
+
+          PROJECT_ID="$(sanitize "${PROJECT_ID}")"
+          REGION="$(sanitize "${REGION}")"
+          TERRAPREVIEW_ENVIRONMENT="$(sanitize "${TERRAPREVIEW_ENVIRONMENT}")"
+          TERRAPREVIEW_APP_NAME="$(sanitize "${TERRAPREVIEW_APP_NAME}")"
+          TERRAPREVIEW_SERVICE_ACCOUNT_EMAIL="$(sanitize "${TERRAPREVIEW_SERVICE_ACCOUNT_EMAIL}")"
+          TERRAPREVIEW_ARTIFACT_BUCKET_NAME="$(sanitize "${TERRAPREVIEW_ARTIFACT_BUCKET_NAME}")"
+
           cat > infra/terraform/terraform.tfvars <<EOF
           project_id      = "${PROJECT_ID}"
           region          = "${REGION}"
@@ -89,6 +104,13 @@ jobs:
         env:
           PREVIEW_ID: pr-${{ github.event.pull_request.number }}
         run: |
+          sanitize() {
+            printf '%s' "$1" | tr -d '\r' | xargs
+          }
+
+          PREVIEW_ID="$(sanitize "${PREVIEW_ID}")"
+          TERRAPREVIEW_ARTIFACT_BUCKET_NAME="$(sanitize "${TERRAPREVIEW_ARTIFACT_BUCKET_NAME}")"
+
           terraform -chdir=infra/terraform/environments/preview init \
             -reconfigure \
             -backend-config="bucket=${TERRAPREVIEW_ARTIFACT_BUCKET_NAME}" \

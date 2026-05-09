@@ -5,6 +5,10 @@ on:
     types:
       - closed
 
+concurrency:
+  group: terrapreview-preview-pr-${{ github.event.pull_request.number }}-destroy
+  cancel-in-progress: false
+
 permissions:
   contents: read
   id-token: write
@@ -46,6 +50,17 @@ jobs:
 
       - name: Write shared Terraform variables for automation
         run: |
+          sanitize() {
+            printf '%s' "$1" | tr -d '\r' | xargs
+          }
+
+          PROJECT_ID="$(sanitize "${PROJECT_ID}")"
+          REGION="$(sanitize "${REGION}")"
+          TERRAPREVIEW_ENVIRONMENT="$(sanitize "${TERRAPREVIEW_ENVIRONMENT}")"
+          TERRAPREVIEW_APP_NAME="$(sanitize "${TERRAPREVIEW_APP_NAME}")"
+          TERRAPREVIEW_SERVICE_ACCOUNT_EMAIL="$(sanitize "${TERRAPREVIEW_SERVICE_ACCOUNT_EMAIL}")"
+          TERRAPREVIEW_ARTIFACT_BUCKET_NAME="$(sanitize "${TERRAPREVIEW_ARTIFACT_BUCKET_NAME}")"
+
           cat > infra/terraform/terraform.tfvars <<EOF
           project_id      = "${PROJECT_ID}"
           region          = "${REGION}"
