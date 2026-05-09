@@ -320,3 +320,5 @@ Retry after bucket IAM fix.
 Retry after regranting serviceAccountUser on runtime SA.
 
 Retry after trimming runtime service account variable.
+
+Hardening regression test.
