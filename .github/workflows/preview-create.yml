@@ -23,6 +23,7 @@ env:
   GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
   TERRAPREVIEW_ENVIRONMENT: ${{ vars.TERRAPREVIEW_ENVIRONMENT }}
   TERRAPREVIEW_APP_NAME: ${{ vars.TERRAPREVIEW_APP_NAME }}
+  TERRAPREVIEW_CONTROL_PLANE_URL: ${{ vars.TERRAPREVIEW_CONTROL_PLANE_URL }}
   TERRAPREVIEW_SERVICE_ACCOUNT_EMAIL: ${{ vars.TERRAPREVIEW_RUNTIME_SERVICE_ACCOUNT_EMAIL }}
   TERRAPREVIEW_ARTIFACT_BUCKET_NAME: ${{ vars.TERRAPREVIEW_ARTIFACT_BUCKET_NAME }}
 
@@ -121,6 +122,34 @@ jobs:
           terraform -chdir=infra/terraform/environments/preview workspace select "${PREVIEW_ID}"
           PREVIEW_URL="$(terraform -chdir=infra/terraform/environments/preview output -raw preview_service_url)"
           echo "preview_url=${PREVIEW_URL}" >> "${GITHUB_OUTPUT}"
+
+      - name: Report preview status to control plane
+        if: env.TERRAPREVIEW_CONTROL_PLANE_URL != ''
+        env:
+          IMAGE_URI: ${{ steps.image.outputs.image_uri }}
+          PREVIEW_ID: pr-${{ github.event.pull_request.number }}
+          PREVIEW_URL: ${{ steps.preview.outputs.preview_url }}
+        run: |
+          curl --fail-with-body \
+            -X POST \
+            -H "Content-Type: application/json" \
+            "${TERRAPREVIEW_CONTROL_PLANE_URL}/previews/events" \
+            -d "$(cat <<EOF
+          {
+            "preview_id": "${PREVIEW_ID}",
+            "status": "ready",
+            "pr_number": "${{ github.event.pull_request.number }}",
+            "git_branch": "${{ github.head_ref }}",
+            "git_sha": "${{ github.event.pull_request.head.sha }}",
+            "preview_url": "${PREVIEW_URL}",
+            "image_uri": "${IMAGE_URI}",
+            "environment": "${TERRAPREVIEW_ENVIRONMENT}",
+            "app_name": "${TERRAPREVIEW_APP_NAME}",
+            "event_type": "pull_request.${{ github.event.action }}",
+            "updated_at": "${{ github.event.pull_request.updated_at }}"
+          }
+          EOF
+          )"
 
       - name: Comment preview URL on pull request
         uses: actions/github-script@v7

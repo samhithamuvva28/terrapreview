@@ -26,3 +26,15 @@ variable "container_image" {
   type        = string
   default     = "us-docker.pkg.dev/cloudrun/container/hello"
 }
+
+variable "firestore_collection_name" {
+  description = "Firestore collection name used by the TerraPreview control plane metadata API."
+  type        = string
+  default     = "preview_records"
+}
+
+variable "existing_artifact_bucket_name" {
+  description = "Optional existing Cloud Storage bucket name to keep using for TerraPreview artifacts. Set this when importing an existing shared foundation."
+  type        = string
+  default     = ""
+}

@@ -37,3 +37,8 @@ output "cloud_run_service_url" {
   description = "Public URL of the Cloud Run service."
   value       = google_cloud_run_v2_service.preview_app.uri
 }
+
+output "firestore_collection_name" {
+  description = "Firestore collection used by the TerraPreview control plane metadata API."
+  value       = var.firestore_collection_name
+}

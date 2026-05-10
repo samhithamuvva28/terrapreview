@@ -5,6 +5,7 @@ provider "google" {
 
 locals {
   name_prefix = "${var.app_name}-${var.environment}"
+  artifact_bucket_name = var.existing_artifact_bucket_name != "" ? var.existing_artifact_bucket_name : "${local.name_prefix}-${var.project_id}-artifacts-${random_id.bucket_suffix[0].hex}"
 
   common_labels = {
     app         = var.app_name
@@ -17,6 +18,7 @@ locals {
 
 # This random suffix helps keep the bucket name globally unique.
 resource "random_id" "bucket_suffix" {
+  count       = var.existing_artifact_bucket_name != "" ? 0 : 1
   byte_length = 2
 }
 
@@ -24,6 +26,7 @@ resource "random_id" "bucket_suffix" {
 resource "google_project_service" "required_apis" {
   for_each = toset([
     "artifactregistry.googleapis.com",
+    "firestore.googleapis.com",
     "iam.googleapis.com",
     "run.googleapis.com",
     "storage.googleapis.com",
@@ -35,7 +38,7 @@ resource "google_project_service" "required_apis" {
 }
 
 resource "google_storage_bucket" "artifacts" {
-  name                        = "${local.name_prefix}-${var.project_id}-artifacts-${random_id.bucket_suffix.hex}"
+  name                        = local.artifact_bucket_name
   location                    = var.region
   project                     = var.project_id
   storage_class               = "STANDARD"
@@ -74,6 +77,23 @@ resource "google_project_iam_member" "preview_app_artifact_registry_reader" {
   member  = "serviceAccount:${google_service_account.preview_app.email}"
 }
 
+resource "google_project_iam_member" "preview_app_firestore_access" {
+  project = var.project_id
+  role    = "roles/datastore.user"
+  member  = "serviceAccount:${google_service_account.preview_app.email}"
+}
+
+resource "google_firestore_database" "preview_metadata" {
+  project                     = var.project_id
+  name                        = "(default)"
+  location_id                 = var.region
+  type                        = "FIRESTORE_NATIVE"
+  concurrency_mode            = "OPTIMISTIC"
+  app_engine_integration_mode = "DISABLED"
+
+  depends_on = [google_project_service.required_apis]
+}
+
 resource "google_artifact_registry_repository" "app_images" {
   project       = var.project_id
   location      = var.region
@@ -99,6 +119,21 @@ resource "google_cloud_run_v2_service" "preview_app" {
 
     containers {
       image = var.container_image
+
+      env {
+        name  = "TERRAPREVIEW_METADATA_BACKEND"
+        value = "firestore"
+      }
+
+      env {
+        name  = "TERRAPREVIEW_GCP_PROJECT"
+        value = var.project_id
+      }
+
+      env {
+        name  = "TERRAPREVIEW_FIRESTORE_COLLECTION"
+        value = var.firestore_collection_name
+      }
     }
 
     labels = local.common_labels

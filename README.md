@@ -297,6 +297,38 @@ In GitHub Actions, you can run `Preview Cleanup Manual` and enter a preview ID s
 The scheduled report workflow lists preview services in Cloud Run, compares them with currently open pull requests, and writes a summary report.
 It starts in report-only mode so it is safe to run before adding any automatic deletion policy.
 
+## Phase 5 Metadata Control Plane
+
+Phase 5 adds a lightweight control plane API to track preview metadata centrally.
+
+What it adds:
+
+- `GET /previews` to list known preview records
+- `GET /previews/{preview_id}` to inspect one preview
+- `POST /previews/events` to upsert preview lifecycle events from GitHub Actions
+- Firestore-backed storage for preview metadata in the shared TerraPreview Cloud Run service
+
+### Metadata fields tracked
+
+- preview ID
+- PR number
+- branch
+- commit SHA
+- preview URL
+- image URI
+- status
+- created and updated timestamps
+
+### GitHub integration
+
+The preview create and destroy workflows report status updates into the control plane if the GitHub repo variable `TERRAPREVIEW_CONTROL_PLANE_URL` is set.
+
+Recommended value:
+
+```text
+TERRAPREVIEW_CONTROL_PLANE_URL=https://your-shared-cloud-run-service-url
+```
+
 ## Cost Warning
 
 Cloud Run, Artifact Registry, and Cloud Storage can incur charges if left running. Use `terraform destroy` when you are done testing Phase 1.
@@ -304,6 +336,7 @@ Cloud Run, Artifact Registry, and Cloud Storage can incur charges if left runnin
 ## What Each File Does
 
 - `app/main.py` contains the simple FastAPI service with `/` and `/health`
+- `app/main.py` also exposes the control plane preview metadata API
 - `app/requirements.txt` lists the Python dependencies for the app
 - `app/Dockerfile` builds the app into a container image
 - `infra/terraform/versions.tf` pins Terraform and provider versions
