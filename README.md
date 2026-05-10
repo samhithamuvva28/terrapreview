@@ -383,3 +383,5 @@ Retry after regranting serviceAccountUser on runtime SA.
 Retry after trimming runtime service account variable.
 
 Hardening regression test.
+
+Lifecycle fix test.
