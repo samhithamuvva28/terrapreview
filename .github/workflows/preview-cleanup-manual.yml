@@ -1,0 +1,72 @@
+name: Preview Cleanup Manual
+
+on:
+  workflow_dispatch:
+    inputs:
+      preview_id:
+        description: Preview ID to destroy, such as pr-123
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  GCP_DEPLOYER_SERVICE_ACCOUNT_EMAIL: ${{ vars.GCP_DEPLOYER_SERVICE_ACCOUNT_EMAIL }}
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  REGION: ${{ vars.GCP_REGION }}
+  GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+  TERRAPREVIEW_ENVIRONMENT: ${{ vars.TERRAPREVIEW_ENVIRONMENT }}
+  TERRAPREVIEW_APP_NAME: ${{ vars.TERRAPREVIEW_APP_NAME }}
+  TERRAPREVIEW_SERVICE_ACCOUNT_EMAIL: ${{ vars.TERRAPREVIEW_RUNTIME_SERVICE_ACCOUNT_EMAIL }}
+  TERRAPREVIEW_ARTIFACT_BUCKET_NAME: ${{ vars.TERRAPREVIEW_ARTIFACT_BUCKET_NAME }}
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_DEPLOYER_SERVICE_ACCOUNT_EMAIL }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Write shared Terraform variables for automation
+        run: |
+          cat > infra/terraform/terraform.tfvars <<EOF
+          project_id      = "${PROJECT_ID}"
+          region          = "${REGION}"
+          environment     = "${TERRAPREVIEW_ENVIRONMENT}"
+          app_name        = "${TERRAPREVIEW_APP_NAME}"
+          container_image = "us-docker.pkg.dev/cloudrun/container/hello"
+          EOF
+
+      - name: Destroy preview environment
+        env:
+          PREVIEW_ID: ${{ github.event.inputs.preview_id }}
+        run: ./scripts/preview-down.sh "${PREVIEW_ID}"
+
+      - name: Write workflow summary
+        env:
+          PREVIEW_ID: ${{ github.event.inputs.preview_id }}
+        run: |
+          {
+            echo "## TerraPreview Manual Cleanup"
+            echo
+            echo "- Status: Destroyed"
+            echo "- Preview ID: ${PREVIEW_ID}"
+          } >> "${GITHUB_STEP_SUMMARY}"

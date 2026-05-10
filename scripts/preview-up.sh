@@ -21,6 +21,9 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BASE_DIR="${ROOT_DIR}/infra/terraform"
 PREVIEW_DIR="${BASE_DIR}/environments/preview"
 TFVARS_FILE="${BASE_DIR}/terraform.tfvars"
+GIT_BRANCH="$(trim "${TERRAPREVIEW_GIT_BRANCH:-}")"
+GIT_SHA="$(trim "${TERRAPREVIEW_GIT_SHA:-}")"
+PR_NUMBER="$(trim "${TERRAPREVIEW_PR_NUMBER:-}")"
 
 if [[ ! "${PREVIEW_ID}" =~ ^[a-z0-9-]+$ ]]; then
   echo "preview-id must contain only lowercase letters, numbers, and dashes."
@@ -87,6 +90,12 @@ terraform -chdir="${PREVIEW_DIR}" init \
 
 echo "Using preview workspace: ${PREVIEW_ID}"
 echo "Using artifact bucket: ${ARTIFACT_BUCKET_NAME}"
+if [[ -n "${GIT_BRANCH}" ]]; then
+  echo "Git branch metadata: ${GIT_BRANCH}"
+fi
+if [[ -n "${GIT_SHA}" ]]; then
+  echo "Git SHA metadata: ${GIT_SHA}"
+fi
 
 if terraform -chdir="${PREVIEW_DIR}" workspace list | tr -d '* ' | grep -Fxq "${PREVIEW_ID}"; then
   terraform -chdir="${PREVIEW_DIR}" workspace select "${PREVIEW_ID}"
@@ -103,7 +112,10 @@ terraform -chdir="${PREVIEW_DIR}" apply \
   -var="preview_id=${PREVIEW_ID}" \
   -var="container_image=${CONTAINER_IMAGE}" \
   -var="service_account_email=${SERVICE_ACCOUNT_EMAIL}" \
-  -var="artifact_bucket_name=${ARTIFACT_BUCKET_NAME}"
+  -var="artifact_bucket_name=${ARTIFACT_BUCKET_NAME}" \
+  -var="git_branch=${GIT_BRANCH}" \
+  -var="git_sha=${GIT_SHA}" \
+  -var="pr_number=${PR_NUMBER}"
 
 echo
 echo "Preview environment is ready."

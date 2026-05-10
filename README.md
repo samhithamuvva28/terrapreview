@@ -271,6 +271,64 @@ The workflows include a few reliability protections:
 - the helper scripts trim carriage returns and extra whitespace from important values such as service account emails and bucket names
 - the destroy script performs a direct `gcloud run services delete` fallback if Terraform teardown completes but the preview service still exists
 
+## Phase 4 Observability And Cleanup
+
+Phase 4 improves operating visibility and cleanup hygiene.
+
+What it adds:
+
+- richer PR comments with preview status, URL, image, and timestamps
+- GitHub Actions job summaries for preview create and destroy runs
+- a manual cleanup workflow you can run from the GitHub UI
+- a scheduled report-only orphan preview audit
+- preview metadata passed into Cloud Run as environment variables for branch, commit SHA, and PR number
+
+### New workflows
+
+- `.github/workflows/preview-cleanup-manual.yml`
+- `.github/workflows/preview-cleanup-report.yml`
+
+### Manual cleanup
+
+In GitHub Actions, you can run `Preview Cleanup Manual` and enter a preview ID such as `pr-123`.
+
+### Scheduled cleanup report
+
+The scheduled report workflow lists preview services in Cloud Run, compares them with currently open pull requests, and writes a summary report.
+It starts in report-only mode so it is safe to run before adding any automatic deletion policy.
+
+## Phase 5 Metadata Control Plane
+
+Phase 5 adds a lightweight control plane API to track preview metadata centrally.
+
+What it adds:
+
+- `GET /previews` to list known preview records
+- `GET /previews/{preview_id}` to inspect one preview
+- `POST /previews/events` to upsert preview lifecycle events from GitHub Actions
+- Firestore-backed storage for preview metadata in the shared TerraPreview Cloud Run service
+
+### Metadata fields tracked
+
+- preview ID
+- PR number
+- branch
+- commit SHA
+- preview URL
+- image URI
+- status
+- created and updated timestamps
+
+### GitHub integration
+
+The preview create and destroy workflows report status updates into the control plane if the GitHub repo variable `TERRAPREVIEW_CONTROL_PLANE_URL` is set.
+
+Recommended value:
+
+```text
+TERRAPREVIEW_CONTROL_PLANE_URL=https://your-shared-cloud-run-service-url
+```
+
 ## Cost Warning
 
 Cloud Run, Artifact Registry, and Cloud Storage can incur charges if left running. Use `terraform destroy` when you are done testing Phase 1.
@@ -278,6 +336,7 @@ Cloud Run, Artifact Registry, and Cloud Storage can incur charges if left runnin
 ## What Each File Does
 
 - `app/main.py` contains the simple FastAPI service with `/` and `/health`
+- `app/main.py` also exposes the control plane preview metadata API
 - `app/requirements.txt` lists the Python dependencies for the app
 - `app/Dockerfile` builds the app into a container image
 - `infra/terraform/versions.tf` pins Terraform and provider versions
@@ -290,6 +349,8 @@ Cloud Run, Artifact Registry, and Cloud Storage can incur charges if left runnin
 - `infra/terraform/README.md` explains the Terraform module in more detail
 - `.github/workflows/preview-create.yml` automates preview creation and PR comments
 - `.github/workflows/preview-destroy.yml` automates preview teardown on PR close
+- `.github/workflows/preview-cleanup-manual.yml` lets you destroy a preview manually from GitHub Actions
+- `.github/workflows/preview-cleanup-report.yml` creates a report of possible orphan preview services
 - `scripts/preview-up.sh` creates or updates a named preview environment
 - `scripts/preview-down.sh` destroys a named preview environment
 - `.gitignore` keeps local Terraform state, variable files, and Python cache files out of Git

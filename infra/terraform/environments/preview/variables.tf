@@ -38,3 +38,21 @@ variable "artifact_bucket_name" {
   description = "Shared artifact bucket created by the base TerraPreview foundation."
   type        = string
 }
+
+variable "git_branch" {
+  description = "Optional Git branch name associated with this preview deployment."
+  type        = string
+  default     = ""
+}
+
+variable "git_sha" {
+  description = "Optional Git commit SHA associated with this preview deployment."
+  type        = string
+  default     = ""
+}
+
+variable "pr_number" {
+  description = "Optional pull request number associated with this preview deployment."
+  type        = string
+  default     = ""
+}

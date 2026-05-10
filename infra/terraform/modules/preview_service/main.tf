@@ -46,6 +46,26 @@ resource "google_cloud_run_v2_service" "preview" {
         name  = "TERRAPREVIEW_ARTIFACT_PREFIX"
         value = local.artifact_prefix
       }
+
+      env {
+        name  = "TERRAPREVIEW_GIT_BRANCH"
+        value = var.git_branch
+      }
+
+      env {
+        name  = "TERRAPREVIEW_GIT_SHA"
+        value = var.git_sha
+      }
+
+      env {
+        name  = "TERRAPREVIEW_PR_NUMBER"
+        value = var.pr_number
+      }
+
+      env {
+        name  = "TERRAPREVIEW_CONTAINER_IMAGE"
+        value = var.container_image
+      }
     }
 
     labels = local.common_labels
