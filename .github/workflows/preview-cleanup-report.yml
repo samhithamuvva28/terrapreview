@@ -17,6 +17,7 @@ env:
   GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
   TERRAPREVIEW_ENVIRONMENT: ${{ vars.TERRAPREVIEW_ENVIRONMENT }}
   TERRAPREVIEW_APP_NAME: ${{ vars.TERRAPREVIEW_APP_NAME }}
+  TERRAPREVIEW_CONTROL_PLANE_URL: ${{ vars.TERRAPREVIEW_CONTROL_PLANE_URL }}
 
 jobs:
   report:
@@ -42,12 +43,24 @@ jobs:
             --region="${REGION}" \
             --format=json > preview-services.json
 
+      - name: Read control plane preview records
+        if: env.TERRAPREVIEW_CONTROL_PLANE_URL != ''
+        run: |
+          curl --fail-with-body \
+            "${TERRAPREVIEW_CONTROL_PLANE_URL}/previews" \
+            > control-plane-previews.json
+
+      - name: Create empty control plane report input
+        if: env.TERRAPREVIEW_CONTROL_PLANE_URL == ''
+        run: echo "[]" > control-plane-previews.json
+
       - name: Write orphan preview report
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require("fs");
             const services = JSON.parse(fs.readFileSync("preview-services.json", "utf8"));
+            const records = JSON.parse(fs.readFileSync("control-plane-previews.json", "utf8"));
             const previewServices = services.filter((service) =>
               service.metadata?.name?.startsWith(`${process.env.TERRAPREVIEW_APP_NAME}-${process.env.TERRAPREVIEW_ENVIRONMENT}-pr-`)
             );
@@ -60,11 +73,29 @@ jobs:
             });
 
             const openPreviewIds = new Set(openPulls.map((pr) => `pr-${pr.number}`));
+            const livePreviewIds = new Set();
             const orphaned = previewServices.filter((service) => {
               const name = service.metadata?.name || "";
               const previewId = name.replace(`${process.env.TERRAPREVIEW_APP_NAME}-${process.env.TERRAPREVIEW_ENVIRONMENT}-`, "");
+              livePreviewIds.add(previewId);
               return !openPreviewIds.has(previewId);
             });
+
+            for (const service of previewServices) {
+              const name = service.metadata?.name || "";
+              const previewId = name.replace(`${process.env.TERRAPREVIEW_APP_NAME}-${process.env.TERRAPREVIEW_ENVIRONMENT}-`, "");
+              livePreviewIds.add(previewId);
+            }
+
+            const openMissingServices = [...openPreviewIds].filter((previewId) => !livePreviewIds.has(previewId));
+            const staleReadyRecords = records.filter(
+              (record) => record.status === "ready" && !livePreviewIds.has(record.preview_id)
+            );
+            const staleDestroyedRecords = records.filter(
+              (record) => record.status === "destroyed" && livePreviewIds.has(record.preview_id)
+            );
+            const mergedRecords = records.filter((record) => record.closure_reason === "merged");
+            const closedRecords = records.filter((record) => record.closure_reason === "closed");
 
             const summary = [];
             summary.push("## TerraPreview Cleanup Report");
@@ -72,7 +103,13 @@ jobs:
             summary.push(`- Region: ${process.env.REGION}`);
             summary.push(`- Open pull requests: ${openPulls.length}`);
             summary.push(`- Preview services found: ${previewServices.length}`);
+            summary.push(`- Control plane records found: ${records.length}`);
             summary.push(`- Orphan preview services: ${orphaned.length}`);
+            summary.push(`- Open PRs missing preview services: ${openMissingServices.length}`);
+            summary.push(`- Control plane ready records without live services: ${staleReadyRecords.length}`);
+            summary.push(`- Control plane destroyed records with live services: ${staleDestroyedRecords.length}`);
+            summary.push(`- Destroyed previews from merged PRs: ${mergedRecords.length}`);
+            summary.push(`- Destroyed previews from closed PRs: ${closedRecords.length}`);
             summary.push("");
 
             if (orphaned.length > 0) {
@@ -80,8 +117,40 @@ jobs:
               for (const service of orphaned) {
                 summary.push(`- ${service.metadata?.name}`);
               }
-            } else {
-              summary.push("No orphan preview services were found.");
+              summary.push("");
+            }
+
+            if (openMissingServices.length > 0) {
+              summary.push("### Open PRs Missing Preview Services");
+              for (const previewId of openMissingServices) {
+                summary.push(`- ${previewId}`);
+              }
+              summary.push("");
+            }
+
+            if (staleReadyRecords.length > 0) {
+              summary.push("### Stale Ready Records");
+              for (const record of staleReadyRecords) {
+                summary.push(`- ${record.preview_id} last updated ${record.updated_at}`);
+              }
+              summary.push("");
+            }
+
+            if (staleDestroyedRecords.length > 0) {
+              summary.push("### Destroyed Records With Live Services");
+              for (const record of staleDestroyedRecords) {
+                summary.push(`- ${record.preview_id} (${record.preview_url || "no preview_url"})`);
+              }
+              summary.push("");
+            }
+
+            if (
+              orphaned.length === 0 &&
+              openMissingServices.length === 0 &&
+              staleReadyRecords.length === 0 &&
+              staleDestroyedRecords.length === 0
+            ) {
+              summary.push("No reconciliation issues were found.");
             }
 
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary.join("\n")}\n`);

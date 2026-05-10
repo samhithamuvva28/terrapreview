@@ -78,6 +78,8 @@ jobs:
       - name: Report preview status to control plane
         if: env.TERRAPREVIEW_CONTROL_PLANE_URL != ''
         env:
+          CLOSURE_REASON: ${{ github.event.pull_request.merged && 'merged' || 'closed' }}
+          EVENT_TYPE: ${{ github.event.pull_request.merged && 'pull_request.merged' || 'pull_request.closed' }}
           PREVIEW_ID: pr-${{ github.event.pull_request.number }}
         run: |
           curl --fail-with-body \
@@ -93,7 +95,8 @@ jobs:
             "git_sha": "${{ github.event.pull_request.head.sha }}",
             "environment": "${TERRAPREVIEW_ENVIRONMENT}",
             "app_name": "${TERRAPREVIEW_APP_NAME}",
-            "event_type": "pull_request.closed",
+            "event_type": "${EVENT_TYPE}",
+            "closure_reason": "${CLOSURE_REASON}",
             "updated_at": "${{ github.event.pull_request.closed_at }}"
           }
           EOF
@@ -102,6 +105,7 @@ jobs:
       - name: Comment preview teardown on pull request
         uses: actions/github-script@v7
         env:
+          CLOSURE_REASON: ${{ github.event.pull_request.merged && 'Merged' || 'Closed Without Merge' }}
           PREVIEW_ID: pr-${{ github.event.pull_request.number }}
           CLOSED_AT: ${{ github.event.pull_request.closed_at }}
         with:
@@ -111,6 +115,7 @@ jobs:
             ## TerraPreview Preview
 
             Status: Destroyed
+            Closure: ${process.env.CLOSURE_REASON}
             Preview ID: \`${process.env.PREVIEW_ID}\`
             Destroyed At: \`${process.env.CLOSED_AT}\``;
 
@@ -145,12 +150,14 @@ jobs:
 
       - name: Write workflow summary
         env:
+          CLOSURE_REASON: ${{ github.event.pull_request.merged && 'merged' || 'closed without merge' }}
           PREVIEW_ID: pr-${{ github.event.pull_request.number }}
         run: |
           {
             echo "## TerraPreview Preview"
             echo
             echo "- Status: Destroyed"
+            echo "- Closure Reason: ${CLOSURE_REASON}"
             echo "- Preview ID: ${PREVIEW_ID}"
             echo "- Trigger: pull_request.closed"
           } >> "${GITHUB_STEP_SUMMARY}"

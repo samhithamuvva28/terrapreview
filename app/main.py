@@ -23,6 +23,7 @@ class PreviewEvent(BaseModel):
     environment: str | None = None
     app_name: str | None = None
     event_type: str | None = None
+    closure_reason: str | None = None
     updated_at: str | None = None
 
 
@@ -37,6 +38,7 @@ class PreviewRecord(BaseModel):
     environment: str | None = None
     app_name: str | None = None
     event_type: str | None = None
+    closure_reason: str | None = None
     created_at: str
     updated_at: str
 
@@ -67,6 +69,7 @@ def merge_preview_event(existing: dict[str, Any], event: PreviewEvent) -> dict[s
         "environment": event.environment if event.environment is not None else existing.get("environment"),
         "app_name": event.app_name if event.app_name is not None else existing.get("app_name"),
         "event_type": event.event_type if event.event_type is not None else existing.get("event_type"),
+        "closure_reason": event.closure_reason if event.closure_reason is not None else existing.get("closure_reason"),
         "created_at": existing.get("created_at", timestamp),
         "updated_at": timestamp,
     }

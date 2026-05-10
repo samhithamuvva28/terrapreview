@@ -197,7 +197,7 @@ Keep `preview_id` short and use only lowercase letters, numbers, and dashes.
 
 Phase 3 automates the manual preview workflow using GitHub Actions.
 
-When a pull request is opened, reopened, or updated:
+When a pull request is opened or updated:
 
 - GitHub Actions builds and pushes a PR-specific Docker image
 - TerraPreview creates or updates a preview environment named like `pr-123`
@@ -322,6 +322,13 @@ What it adds:
 ### GitHub integration
 
 The preview create and destroy workflows report status updates into the control plane if the GitHub repo variable `TERRAPREVIEW_CONTROL_PLANE_URL` is set.
+
+Phase 5B improves lifecycle and cleanup behavior:
+
+- previews are not recreated automatically when a pull request is reopened
+- destroyed preview records clear their `preview_url`
+- destroyed preview records distinguish between merged PRs and closed-without-merge PRs
+- the scheduled cleanup report compares open PRs, live Cloud Run preview services, and control plane records
 
 Recommended value:
 
