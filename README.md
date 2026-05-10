@@ -303,6 +303,7 @@ Phase 5 adds a lightweight control plane API to track preview metadata centrally
 
 What it adds:
 
+- `GET /dashboard` for a human-friendly preview dashboard UI
 - `GET /previews` to list known preview records
 - `GET /previews/{preview_id}` to inspect one preview
 - `POST /previews/events` to upsert preview lifecycle events from GitHub Actions
@@ -342,7 +343,7 @@ Cloud Run, Artifact Registry, and Cloud Storage can incur charges if left runnin
 
 ## What Each File Does
 
-- `app/main.py` contains the simple FastAPI service with `/` and `/health`
+- `app/main.py` contains the FastAPI control plane with `/dashboard`, `/health`, and preview metadata APIs
 - `app/main.py` also exposes the control plane preview metadata API
 - `app/requirements.txt` lists the Python dependencies for the app
 - `app/Dockerfile` builds the app into a container image
