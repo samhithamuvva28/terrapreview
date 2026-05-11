@@ -162,18 +162,23 @@ def dashboard() -> str:
     <title>TerraPreview Dashboard</title>
     <style>
       :root {
-        --bg: #f7f3ea;
-        --panel: #fffaf2;
-        --panel-strong: #fff;
-        --border: #d9c9a8;
-        --text: #1f1d19;
-        --muted: #6c6558;
-        --accent: #b8552f;
-        --accent-soft: #f3d9c9;
-        --good: #2f6b45;
-        --warn: #8f5a14;
-        --bad: #973b3b;
-        --shadow: 0 18px 45px rgba(76, 53, 24, 0.12);
+        --bg: #f4efe7;
+        --ink: #171510;
+        --muted: #6c665d;
+        --panel: rgba(255, 250, 243, 0.84);
+        --panel-strong: rgba(255, 253, 248, 0.94);
+        --line: rgba(92, 74, 48, 0.16);
+        --accent: #b64d22;
+        --accent-deep: #7f2e10;
+        --good: #1f6a46;
+        --good-soft: rgba(31, 106, 70, 0.12);
+        --bad: #9e3d32;
+        --bad-soft: rgba(158, 61, 50, 0.12);
+        --gold: #8b6519;
+        --shadow: 0 22px 60px rgba(67, 45, 21, 0.14);
+        --radius-xl: 28px;
+        --radius-lg: 22px;
+        --radius-md: 16px;
       }
 
       * {
@@ -183,95 +188,175 @@ def dashboard() -> str:
       body {
         margin: 0;
         font-family: Georgia, "Times New Roman", serif;
-        color: var(--text);
+        color: var(--ink);
         background:
-          radial-gradient(circle at top left, rgba(184, 85, 47, 0.15), transparent 30%),
-          radial-gradient(circle at bottom right, rgba(47, 107, 69, 0.12), transparent 28%),
-          linear-gradient(180deg, #f5efe3 0%, var(--bg) 100%);
+          radial-gradient(circle at 12% 8%, rgba(182, 77, 34, 0.18), transparent 26%),
+          radial-gradient(circle at 88% 14%, rgba(31, 106, 70, 0.12), transparent 22%),
+          radial-gradient(circle at 80% 82%, rgba(139, 101, 25, 0.1), transparent 26%),
+          linear-gradient(180deg, #f8f3ea 0%, var(--bg) 100%);
       }
 
       main {
-        width: min(1200px, calc(100% - 32px));
+        width: min(1260px, calc(100% - 32px));
         margin: 0 auto;
-        padding: 40px 0 56px;
+        padding: 30px 0 56px;
       }
 
       .hero {
         display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(290px, 0.75fr);
         gap: 18px;
-        margin-bottom: 26px;
+        margin-bottom: 20px;
+      }
+
+      .hero-panel,
+      .summary-panel,
+      .filters-panel,
+      .board-panel,
+      .metric,
+      .preview-card {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(10px);
+      }
+
+      .hero-panel,
+      .summary-panel,
+      .filters-panel,
+      .board-panel {
+        border-radius: var(--radius-xl);
+      }
+
+      .hero-panel {
+        padding: 26px 28px 28px;
+      }
+
+      .summary-panel {
+        padding: 22px 22px 24px;
       }
 
       .eyebrow {
         display: inline-flex;
+        align-items: center;
+        gap: 8px;
         width: fit-content;
-        padding: 7px 12px;
+        padding: 8px 13px;
         border-radius: 999px;
-        background: var(--accent-soft);
-        color: var(--accent);
-        font-size: 13px;
-        letter-spacing: 0.08em;
+        background: rgba(182, 77, 34, 0.12);
+        color: var(--accent-deep);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
         text-transform: uppercase;
       }
 
-      h1 {
+      .hero h1 {
         margin: 0;
-        font-size: clamp(40px, 7vw, 76px);
-        line-height: 0.94;
+        font-size: clamp(42px, 7vw, 78px);
+        line-height: 0.92;
         letter-spacing: -0.04em;
+        max-width: 11ch;
       }
 
       .lede {
-        margin: 0;
-        max-width: 760px;
+        margin: 16px 0 0;
+        max-width: 720px;
         color: var(--muted);
         font-size: 18px;
         line-height: 1.6;
       }
 
-      .stats {
+      .hero-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 22px;
+      }
+
+      .hero-chip {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.65);
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .hero-chip strong {
+        color: var(--ink);
+        font-size: 15px;
+      }
+
+      .summary-title {
+        margin: 0 0 14px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+      }
+
+      .summary-emphasis {
+        font-size: clamp(30px, 5vw, 48px);
+        line-height: 0.98;
+        margin: 0;
+        letter-spacing: -0.04em;
+      }
+
+      .summary-copy {
+        margin: 12px 0 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .metrics {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 14px;
-        margin: 28px 0 24px;
+        margin: 18px 0 20px;
       }
 
-      .card,
-      .stat {
-        border: 1px solid var(--border);
-        background: rgba(255, 250, 242, 0.92);
-        border-radius: 24px;
-        box-shadow: var(--shadow);
+      .metric {
+        border-radius: var(--radius-lg);
+        padding: 18px 18px 16px;
       }
 
-      .stat {
-        padding: 18px 20px;
-      }
-
-      .stat-label {
+      .metric-label {
         color: var(--muted);
-        font-size: 13px;
+        font-size: 12px;
         text-transform: uppercase;
         letter-spacing: 0.08em;
       }
 
-      .stat-value {
-        margin-top: 10px;
-        font-size: 34px;
+      .metric-value {
+        margin-top: 12px;
+        font-size: 38px;
         line-height: 1;
       }
 
+      .metric-note {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.4;
+      }
+
+      .filters-panel {
+        padding: 16px;
+        margin-bottom: 18px;
+      }
+
       .toolbar {
-        display: flex;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
         flex-wrap: wrap;
         gap: 12px;
         align-items: center;
-        justify-content: space-between;
-        margin-bottom: 16px;
       }
 
       .filters {
-        display: flex;
+        display: grid;
+        grid-template-columns: minmax(220px, 1.4fr) repeat(2, minmax(160px, 0.7fr));
         flex-wrap: wrap;
         gap: 10px;
       }
@@ -284,94 +369,188 @@ def dashboard() -> str:
 
       .control,
       .button {
-        border: 1px solid var(--border);
+        border: 1px solid var(--line);
         border-radius: 14px;
         background: var(--panel-strong);
-        color: var(--text);
-        padding: 10px 14px;
+        color: var(--ink);
+        padding: 11px 14px;
       }
 
       .button {
         cursor: pointer;
-        background: linear-gradient(180deg, #fff8ef 0%, #f3dfca 100%);
+        background: linear-gradient(180deg, #fff8ef 0%, #f1d7be 100%);
+        font-weight: 700;
       }
 
       .button:hover {
         transform: translateY(-1px);
       }
 
-      .table-shell {
-        overflow: hidden;
+      .board-panel {
+        padding: 18px;
       }
 
-      table {
-        width: 100%;
-        border-collapse: collapse;
+      .board-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 16px;
       }
 
-      th,
-      td {
-        padding: 16px 18px;
-        border-top: 1px solid rgba(217, 201, 168, 0.6);
-        vertical-align: top;
-        text-align: left;
+      .board-title {
+        margin: 0;
+        font-size: 26px;
+        letter-spacing: -0.03em;
       }
 
-      thead th {
-        border-top: 0;
+      .board-subtitle {
+        margin: 6px 0 0;
         color: var(--muted);
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
+        font-size: 15px;
       }
 
-      tbody tr:hover {
-        background: rgba(255, 255, 255, 0.65);
+      .board-count {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .preview-grid {
+        display: grid;
+        gap: 14px;
+      }
+
+      .preview-card {
+        border-radius: var(--radius-lg);
+        padding: 18px;
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(240px, 0.8fr);
+        gap: 16px;
+        align-items: start;
+      }
+
+      .preview-card-ready {
+        border-color: rgba(31, 106, 70, 0.25);
+        background: linear-gradient(180deg, rgba(255, 251, 247, 0.95) 0%, rgba(245, 255, 250, 0.94) 100%);
+      }
+
+      .preview-card-destroyed {
+        border-color: rgba(158, 61, 50, 0.24);
+        background: linear-gradient(180deg, rgba(255, 250, 246, 0.95) 0%, rgba(255, 246, 244, 0.94) 100%);
+      }
+
+      .preview-topline {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
       }
 
       .preview-id {
         font-weight: 700;
-        font-size: 18px;
+        font-size: 22px;
+        letter-spacing: -0.03em;
       }
 
-      .meta {
+      .preview-pr {
         color: var(--muted);
-        font-size: 13px;
-        line-height: 1.5;
+        font-size: 14px;
       }
 
       .status {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 6px 10px;
+        padding: 7px 11px;
         border-radius: 999px;
-        font-size: 13px;
+        font-size: 12px;
         border: 1px solid transparent;
-        text-transform: capitalize;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 700;
       }
 
       .status-ready {
         color: var(--good);
-        background: rgba(47, 107, 69, 0.12);
-        border-color: rgba(47, 107, 69, 0.24);
+        background: var(--good-soft);
+        border-color: rgba(31, 106, 70, 0.24);
       }
 
       .status-destroyed {
         color: var(--bad);
-        background: rgba(151, 59, 59, 0.12);
-        border-color: rgba(151, 59, 59, 0.22);
+        background: var(--bad-soft);
+        border-color: rgba(158, 61, 50, 0.22);
       }
 
       .status-other {
-        color: var(--warn);
-        background: rgba(143, 90, 20, 0.12);
-        border-color: rgba(143, 90, 20, 0.24);
+        color: var(--gold);
+        background: rgba(139, 101, 25, 0.12);
+        border-color: rgba(139, 101, 25, 0.24);
+      }
+
+      .preview-copy {
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.55;
+        margin: 0 0 16px;
+      }
+
+      .meta-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 14px;
+      }
+
+      .meta-block {
+        border-top: 1px solid rgba(92, 74, 48, 0.12);
+        padding-top: 10px;
+      }
+
+      .meta-label {
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .meta-value {
+        margin-top: 5px;
+        font-size: 15px;
+        line-height: 1.45;
+        word-break: break-word;
+      }
+
+      .preview-side {
+        display: grid;
+        gap: 12px;
+      }
+
+      .side-card {
+        border: 1px solid rgba(92, 74, 48, 0.12);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.58);
+        padding: 14px;
+      }
+
+      .side-label {
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .side-value {
+        margin-top: 8px;
+        font-size: 15px;
+        line-height: 1.5;
+        word-break: break-word;
       }
 
       .link {
-        color: var(--accent);
+        color: var(--accent-deep);
         text-decoration: none;
+        font-weight: 700;
       }
 
       .link:hover {
@@ -379,8 +558,10 @@ def dashboard() -> str:
       }
 
       .empty {
-        padding: 28px 24px 34px;
+        padding: 34px 18px 22px;
         color: var(--muted);
+        text-align: center;
+        font-size: 16px;
       }
 
       .footer-note {
@@ -389,42 +570,22 @@ def dashboard() -> str:
         font-size: 14px;
       }
 
-      @media (max-width: 900px) {
-        .stats {
+      @media (max-width: 1080px) {
+        .hero {
+          grid-template-columns: 1fr;
+        }
+
+        .metrics {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
-        table,
-        thead,
-        tbody,
-        tr,
-        th,
-        td {
-          display: block;
+        .toolbar,
+        .filters {
+          grid-template-columns: 1fr;
         }
 
-        thead {
-          display: none;
-        }
-
-        tbody tr {
-          border-top: 1px solid rgba(217, 201, 168, 0.6);
-          padding: 6px 0;
-        }
-
-        td {
-          border-top: 0;
-          padding: 10px 18px;
-        }
-
-        td::before {
-          content: attr(data-label);
-          display: block;
-          color: var(--muted);
-          font-size: 12px;
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-          margin-bottom: 4px;
+        .preview-card {
+          grid-template-columns: 1fr;
         }
       }
 
@@ -434,7 +595,8 @@ def dashboard() -> str:
           padding-top: 24px;
         }
 
-        .stats {
+        .metrics,
+        .meta-grid {
           grid-template-columns: 1fr;
         }
 
@@ -447,33 +609,51 @@ def dashboard() -> str:
   <body>
     <main>
       <section class="hero">
-        <span class="eyebrow">TerraPreview Control Plane</span>
-        <h1>Preview environments with real lifecycle visibility.</h1>
-        <p class="lede">
-          Track every preview, see which pull requests are still live, and quickly spot records that drift away from real Cloud Run state.
-        </p>
+        <article class="hero-panel">
+          <span class="eyebrow">TerraPreview Control Plane</span>
+          <h1>Preview infrastructure that reads like an operations console.</h1>
+          <p class="lede">
+            See what is live right now, what has already been torn down, and which pull requests left behind metadata that needs attention. This is the single surface for preview state, not just a JSON endpoint with a prettier wrapper.
+          </p>
+          <div class="hero-strip">
+            <span class="hero-chip"><strong>Live previews</strong> are surfaced with direct entry points.</span>
+            <span class="hero-chip"><strong>Destroyed previews</strong> retain closure context for audits.</span>
+            <span class="hero-chip"><strong>Filters</strong> make drift easy to spot fast.</span>
+          </div>
+        </article>
+        <aside class="summary-panel">
+          <div class="summary-title">Operational Snapshot</div>
+          <p class="summary-emphasis">A control plane you can actually scan in seconds.</p>
+          <p class="summary-copy">
+            TerraPreview now tracks the full lifecycle from ready to destroyed, including whether a preview died because the PR merged or because it was simply closed.
+          </p>
+        </aside>
       </section>
 
-      <section class="stats" aria-label="Preview summary">
-        <article class="stat">
-          <div class="stat-label">Total Records</div>
-          <div class="stat-value" id="stat-total">0</div>
+      <section class="metrics" aria-label="Preview summary">
+        <article class="metric">
+          <div class="metric-label">Total Records</div>
+          <div class="metric-value" id="stat-total">0</div>
+          <div class="metric-note">Every known preview state change preserved in the control plane.</div>
         </article>
-        <article class="stat">
-          <div class="stat-label">Ready</div>
-          <div class="stat-value" id="stat-ready">0</div>
+        <article class="metric">
+          <div class="metric-label">Ready</div>
+          <div class="metric-value" id="stat-ready">0</div>
+          <div class="metric-note">Currently active previews with a live route attached.</div>
         </article>
-        <article class="stat">
-          <div class="stat-label">Destroyed</div>
-          <div class="stat-value" id="stat-destroyed">0</div>
+        <article class="metric">
+          <div class="metric-label">Destroyed</div>
+          <div class="metric-value" id="stat-destroyed">0</div>
+          <div class="metric-note">Previews that have been torn down and recorded cleanly.</div>
         </article>
-        <article class="stat">
-          <div class="stat-label">Merged Closures</div>
-          <div class="stat-value" id="stat-merged">0</div>
+        <article class="metric">
+          <div class="metric-label">Merged Closures</div>
+          <div class="metric-value" id="stat-merged">0</div>
+          <div class="metric-note">Destroyed previews that ended through a successful merge path.</div>
         </article>
       </section>
 
-      <section class="card table-shell">
+      <section class="filters-panel">
         <div class="toolbar">
           <div class="filters">
             <input class="control" id="search" type="search" placeholder="Filter by preview, branch, PR, or SHA" />
@@ -491,19 +671,17 @@ def dashboard() -> str:
           </div>
           <button class="button" id="refresh-button" type="button">Refresh</button>
         </div>
+      </section>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Preview</th>
-              <th>Status</th>
-              <th>Branch</th>
-              <th>Updated</th>
-              <th>Preview URL</th>
-            </tr>
-          </thead>
-          <tbody id="preview-table"></tbody>
-        </table>
+      <section class="board-panel">
+        <div class="board-head">
+          <div>
+            <h2 class="board-title">Preview Ledger</h2>
+            <p class="board-subtitle">A readable lifecycle view across active, merged, and manually closed environments.</p>
+          </div>
+          <div class="board-count" id="board-count">0 records visible</div>
+        </div>
+        <div class="preview-grid" id="preview-table"></div>
         <div class="empty" id="empty-state" hidden>No previews match the current filters.</div>
       </section>
 
@@ -527,6 +705,7 @@ def dashboard() -> str:
         statReady: document.getElementById("stat-ready"),
         statDestroyed: document.getElementById("stat-destroyed"),
         statMerged: document.getElementById("stat-merged"),
+        boardCount: document.getElementById("board-count"),
       };
 
       function escapeHtml(value) {
@@ -608,6 +787,7 @@ def dashboard() -> str:
       function renderTable() {
         const previews = computeVisiblePreviews();
         renderStats(state.previews);
+        elements.boardCount.textContent = `${previews.length} record${previews.length === 1 ? "" : "s"} visible`;
 
         if (previews.length === 0) {
           elements.table.innerHTML = "";
@@ -623,33 +803,57 @@ def dashboard() -> str:
               : `<span class="meta">No live URL</span>`;
 
             const closureReason = preview.closure_reason
-              ? `<div class="meta">Closure: ${escapeHtml(preview.closure_reason)}</div>`
-              : `<div class="meta">Closure: active</div>`;
+              ? escapeHtml(preview.closure_reason)
+              : "active";
+
+            const cardClass = preview.status === "ready" ? "preview-card preview-card-ready" : preview.status === "destroyed" ? "preview-card preview-card-destroyed" : "preview-card";
+            const copy = preview.status === "ready"
+              ? "This preview is currently active and should be reachable through its live route."
+              : "This preview has already been torn down and remains here for historical visibility.";
 
             return `
-              <tr>
-                <td data-label="Preview">
-                  <div class="preview-id">${escapeHtml(preview.preview_id)}</div>
-                  <div class="meta">PR #${escapeHtml(preview.pr_number || "unknown")}</div>
-                  <div class="meta">SHA ${escapeHtml((preview.git_sha || "unknown").slice(0, 7))}</div>
-                </td>
-                <td data-label="Status">
+              <article class="${cardClass}">
+                <div>
+                  <div class="preview-topline">
+                    <div class="preview-id">${escapeHtml(preview.preview_id)}</div>
+                    <div class="preview-pr">PR #${escapeHtml(preview.pr_number || "unknown")}</div>
+                  </div>
                   <span class="${statusClass(preview.status)}">${escapeHtml(preview.status)}</span>
-                  ${closureReason}
-                </td>
-                <td data-label="Branch">
-                  <div>${escapeHtml(preview.git_branch || "Unknown")}</div>
-                  <div class="meta">${escapeHtml(preview.event_type || "No event type")}</div>
-                </td>
-                <td data-label="Updated">
-                  <div>${escapeHtml(formatDate(preview.updated_at))}</div>
-                  <div class="meta">Created ${escapeHtml(formatDate(preview.created_at))}</div>
-                </td>
-                <td data-label="Preview URL">
-                  ${previewUrl}
-                  <div class="meta">${escapeHtml(preview.image_uri || "No image recorded")}</div>
-                </td>
-              </tr>
+                  <p class="preview-copy">${copy}</p>
+                  <div class="meta-grid">
+                    <div class="meta-block">
+                      <div class="meta-label">Branch</div>
+                      <div class="meta-value">${escapeHtml(preview.git_branch || "Unknown")}</div>
+                    </div>
+                    <div class="meta-block">
+                      <div class="meta-label">Closure</div>
+                      <div class="meta-value">${closureReason}</div>
+                    </div>
+                    <div class="meta-block">
+                      <div class="meta-label">Event Type</div>
+                      <div class="meta-value">${escapeHtml(preview.event_type || "No event type")}</div>
+                    </div>
+                    <div class="meta-block">
+                      <div class="meta-label">Git SHA</div>
+                      <div class="meta-value">${escapeHtml(preview.git_sha || "Unknown")}</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="preview-side">
+                  <div class="side-card">
+                    <div class="side-label">Preview Route</div>
+                    <div class="side-value">${previewUrl}</div>
+                  </div>
+                  <div class="side-card">
+                    <div class="side-label">Container Image</div>
+                    <div class="side-value">${escapeHtml(preview.image_uri || "No image recorded")}</div>
+                  </div>
+                  <div class="side-card">
+                    <div class="side-label">Lifecycle Timing</div>
+                    <div class="side-value">Updated ${escapeHtml(formatDate(preview.updated_at))}<br />Created ${escapeHtml(formatDate(preview.created_at))}</div>
+                  </div>
+                </div>
+              </article>
             `;
           })
           .join("");

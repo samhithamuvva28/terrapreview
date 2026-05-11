@@ -2,6 +2,82 @@
 
 TerraPreview is a personal SWE/infra project for learning how to build ephemeral preview environments on Google Cloud. The long-term goal is to create isolated environments for GitHub pull requests and automatically clean them up after merge or close.
 
+## MVP Status
+
+TerraPreview is now a working MVP.
+
+It can:
+
+- provision shared preview platform infrastructure with Terraform
+- create one isolated Cloud Run preview per pull request
+- build and deploy preview images automatically from GitHub Actions
+- destroy previews automatically when pull requests close or merge
+- track preview lifecycle state in a Firestore-backed control plane
+- surface preview state in a human-friendly dashboard
+- reconcile live services against pull requests and control-plane records
+
+## Final Feature Snapshot
+
+- Terraform-managed shared GCP foundation
+- reusable per-preview Terraform module
+- PR-triggered preview create and destroy workflows
+- GitHub OIDC to Google Cloud Workload Identity Federation
+- richer PR comments and workflow summaries
+- manual cleanup workflow
+- scheduled reconciliation report
+- Firestore-backed preview metadata API
+- dashboard UI for active and destroyed previews
+- lifecycle correctness for `ready`, `destroyed`, `merged`, and `closed`
+
+## Architecture
+
+```text
+GitHub Pull Request
+        |
+        v
+GitHub Actions
+  - build preview image
+  - create/update preview
+  - destroy on close/merge
+        |
+        v
+Google Cloud
+  - Artifact Registry stores images
+  - Cloud Run hosts shared app + per-PR previews
+  - GCS stores preview Terraform state
+  - Firestore stores preview metadata
+        |
+        v
+TerraPreview Control Plane
+  - /previews API
+  - /dashboard UI
+  - reconciliation reports
+```
+
+## Demo Flow
+
+The cleanest end-to-end demo is:
+
+1. Open a pull request.
+2. Watch GitHub Actions build an image and create a preview.
+3. Open the preview URL from the PR comment.
+4. Open the control-plane dashboard and show the preview record in `ready` state.
+5. Merge or close the pull request.
+6. Watch the destroy workflow run.
+7. Refresh the dashboard and show the record in `destroyed` state with the correct closure reason.
+
+## Portfolio / Interview Summary
+
+If you need a short project description, this works well:
+
+> TerraPreview is a Google Cloud-based ephemeral preview platform I built end to end. It uses Terraform for infrastructure, GitHub Actions plus Workload Identity Federation for secure CI/CD, Cloud Run for isolated per-PR environments, and a Firestore-backed control plane with a dashboard for lifecycle tracking and reconciliation.
+
+Good resume bullet versions:
+
+- Built a Terraform + Cloud Run preview environment platform that creates and destroys isolated per-PR environments automatically from GitHub Actions.
+- Implemented GitHub OIDC to Google Cloud Workload Identity Federation to remove long-lived deploy keys from CI.
+- Designed a Firestore-backed control plane and dashboard to track preview lifecycle state, merged vs closed teardown paths, and reconciliation against live cloud resources.
+
 Phase 1 focuses on the Terraform foundation. It gives you a simple, deployable GCP baseline that you can safely create, update, and destroy with Terraform.
 
 Phase 2 adds a manual preview environment workflow on top of that foundation. It lets you create one isolated Cloud Run preview service per `preview_id` before adding full GitHub pull request automation later.
@@ -308,6 +384,7 @@ What it adds:
 - `GET /previews/{preview_id}` to inspect one preview
 - `POST /previews/events` to upsert preview lifecycle events from GitHub Actions
 - Firestore-backed storage for preview metadata in the shared TerraPreview Cloud Run service
+- `/` redirects to `/dashboard` for a human-friendly operations view
 
 ### Metadata fields tracked
 
@@ -373,25 +450,3 @@ cd /Users/samhitha/Documents/Projects/terrapreview/infra/terraform
 cp terraform.tfvars.example terraform.tfvars
 terraform init
 ```
-
-Phase 3 GitHub Actions test.
-
-Retry with correct workload identity provider.
-
-Retry after granting token creator.
-
-Retry after confirming token creator role.
-
-Retry after confirming token creator role.
-
-Retry after bucket IAM fix.
-
-Retry after regranting serviceAccountUser on runtime SA.
-
-Retry after trimming runtime service account variable.
-
-Hardening regression test.
-
-Lifecycle fix test.
-
-Phase 5B merged test.
