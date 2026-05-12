@@ -2,8 +2,6 @@
 
 TerraPreview is a personal SWE/infra project for learning how to build ephemeral preview environments on Google Cloud. The long-term goal is to create isolated environments for GitHub pull requests and automatically clean them up after merge or close.
 
-## MVP Status
-
 TerraPreview is now a working MVP.
 
 It can:
